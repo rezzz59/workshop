@@ -1,95 +1,169 @@
+/*                                                                                                                                                                                                                                    
+     * Project: Sistem Absensi RFID Sosialisasi SMK                                                                                                                                                                                       
+     * Developer: Aditya Febrian                                                                                                                                                                                                          
+     * NIM: 240104040129                                                                                                                                                                                                                  
+     * Institution: UIN Antasari Banjarmasin                                                                                                                                                                                              
+     */                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                          
     #include <WiFi.h>                                                                                                                                                                                                                     
-    #include <HTTPClient.h>                                                                                                                                                                                                               
     #include <SPI.h>                                                                                                                                                                                                                      
     #include <MFRC522.h>                                                                                                                                                                                                                  
+    #include <WiFiClientSecure.h>                                                                                                                                                                                                         
                                                                                                                                                                                                                                           
-    // Konfigurasi pin RFID                                                                                                                                                                                                               
-    #define RST_PIN 27                                                                                                                                                                                                                    
-    #define SS_PIN  23                                                                                                                                                                                                                    
-    #define SCK_PIN 5                                                                                                                                                                                                                     
-    #define MISO_PIN 18                                                                                                                                                                                                                   
-    #define MOSI_PIN 19                                                                                                                                                                                                                   
+    #define RST_PIN 22                                                                                                                                                                                                                    
+    #define SS_PIN 5                                                                                                                                                                                                                      
                                                                                                                                                                                                                                           
-    // Konfigurasi pin LED                                                                                                                                                                                                                
-    #define LED_PIN 4                                                                                                                                                                                                                     
+    #define LED_HIJAU 21                                                                                                                                                                                                                  
+    #define LED_MERAH 4                                                                                                                                                                                                                   
                                                                                                                                                                                                                                           
     MFRC522 mfrc522(SS_PIN, RST_PIN);                                                                                                                                                                                                     
                                                                                                                                                                                                                                           
-    // ==========================================================                                                                                                                                                                         
-    // GANTI DENGAN LINK WEB ANDA (Vercel atau Hostinger/api.php)                                                                                                                                                                         
-    // ==========================================================                                                                                                                                                                         
-    const char* serverName = "https://rfid-web-khaki.vercel.app/api/rfid";                                                                                                                                                                      
+    // ===================================                                                                                                                                                                                                
+    // WIFI SUDAH DIGANTI KE WOKWI                                                                                                                                                                                                        
+    // ===================================                                                                                                                                                                                                
+    const char* ssid = "Wokwi-GUEST";                                                                                                                                                                                                     
+    const char* password = "";                                                                                                                                                                                                            
+                                                                                                                                                                                                                                          
+    const String apiUrl = "https://rfid.ordinaryfeb.xyz/api/rfid/scan";                                                                                                                                                                   
                                                                                                                                                                                                                                           
     void setup() {                                                                                                                                                                                                                        
       Serial.begin(115200);                                                                                                                                                                                                               
                                                                                                                                                                                                                                           
-      // Mengatur Pin LED sebagai Output dan pastikan dalam kondisi mati (LOW)                                                                                                                                                            
-      pinMode(LED_PIN, OUTPUT);                                                                                                                                                                                                           
-      digitalWrite(LED_PIN, LOW);                                                                                                                                                                                                         
+      pinMode(LED_HIJAU, OUTPUT);                                                                                                                                                                                                         
+      pinMode(LED_MERAH, OUTPUT);                                                                                                                                                                                                         
+      digitalWrite(LED_HIJAU, LOW);                                                                                                                                                                                                       
+      digitalWrite(LED_MERAH, LOW);                                                                                                                                                                                                       
                                                                                                                                                                                                                                           
-      SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);                                                                                                                                                                                     
+      delay(1000);                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                          
+      Serial.println("\n==================================");                                                                                                                                                                             
+      Serial.println("  Diagnostik HW");                                                                                                                                                                                                  
+      Serial.println("==================================");                                                                                                                                                                               
+                                                                                                                                                                                                                                          
+      SPI.begin();                                                                                                                                                                                                                        
       mfrc522.PCD_Init();                                                                                                                                                                                                                 
                                                                                                                                                                                                                                           
-      Serial.println("Mesin RFID Siap!");                                                                                                                                                                                                 
-      Serial.print("Menghubungkan ke Wokwi-GUEST");                                                                                                                                                                                       
-      WiFi.begin("Wokwi-GUEST", "");                                                                                                                                                                                                      
+      byte v = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);                                                                                                                                                                              
+      if (v == 0x00 || v == 0xFF) {                                                                                                                                                                                                       
+        Serial.println("\n[ERR] Komunikasi RFID Gagal. Cek Kabel!");                                                                                                                                                                      
+      } else {                                                                                                                                                                                                                            
+        Serial.println("[Berhasil] Modul RFID Connected.");                                                                                                                                                                               
+      }                                                                                                                                                                                                                                   
+      Serial.println("==================================\n");                                                                                                                                                                             
                                                                                                                                                                                                                                           
+      WiFi.begin(ssid, password);                                                                                                                                                                                                         
+      Serial.print("Menghubungkan ke WiFi");                                                                                                                                                                                              
       while (WiFi.status() != WL_CONNECTED) {                                                                                                                                                                                             
         delay(500);                                                                                                                                                                                                                       
         Serial.print(".");                                                                                                                                                                                                                
       }                                                                                                                                                                                                                                   
-      Serial.println("\nWiFi Berhasil Terhubung!");                                                                                                                                                                                       
+      Serial.println("\n WiFi Terhubung!");                                                                                                                                                                                               
+      Serial.println("Silahkan Tap Kartu Anda");                                                                                                                                                                                          
     }                                                                                                                                                                                                                                     
                                                                                                                                                                                                                                           
     void loop() {                                                                                                                                                                                                                         
-      // Jika ada kartu ditempel                                                                                                                                                                                                          
-      if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {                                                                                                                                                             
                                                                                                                                                                                                                                           
-        // NYALAKAN LED KETIKA KARTU TERDETEKSI                                                                                                                                                                                           
-        digitalWrite(LED_PIN, HIGH);
-        
-        String rfidUid = "";
-        // Konversi data kartu menjadi tulisan
-        for (byte i = 0; i < mfrc522.uid.size; i++) {
-          rfidUid += String(mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");
-          rfidUid += String(mfrc522.uid.uidByte[i], HEX);
-        }
-        rfidUid.toUpperCase();
-        Serial.println("Kartu Terbaca: " + rfidUid);
-  
-        // Kirim data ke internet
-        if(WiFi.status() == WL_CONNECTED){
-          HTTPClient http;
-          http.begin(serverName);
-          
-          http.addHeader("Content-Type", "application/json"); 
-          http.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-          http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  
-          String jsonPayload = "{\"uid\": \"" + rfidUid + "\"}";
-          Serial.println("Mengirim data ke Server...");
-          
-          int httpResponseCode = http.POST(jsonPayload); 
-  
-          if (httpResponseCode > 0) {
-            Serial.print("BERHASIL! (Kode HTTP: ");
-            Serial.print(httpResponseCode);
-            Serial.println(")");
-          } else {
-            Serial.print("GAGAL. Error: ");
-            Serial.println(http.errorToString(httpResponseCode).c_str());
-          }
-          
-          http.end(); 
-        } else {
-          Serial.println("Internet terputus!");
-        }
-  
-        // MATIKAN KEMBALI LED SETELAH PROSES SELESAI
-        digitalWrite(LED_PIN, LOW);
-  
-        // Jeda agar kartu tidak terbaca ganda
-        mfrc522.PICC_HaltA(); 
-        delay(1000); 
+      byte rfidVersion = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);                                                                                                                                                                    
+      if (rfidVersion == 0x00 || rfidVersion == 0xFF) {                                                                                                                                                                                   
+                                                                                                                                                                                                                                          
+        digitalWrite(LED_MERAH, HIGH);                                                                                                                                                                                                    
+        delay(100);                                                                                                                                                                                                                       
+        digitalWrite(LED_MERAH, LOW);                                                                                                                                                                                                     
+        delay(100);                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                          
+        mfrc522.PCD_Init();                                                                                                                                                                                                               
+        delay(500);                                                                                                                                                                                                                       
+        return;                                                                                                                                                                                                                           
+      }                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                          
+      // 2. Baca Kartu                                                                                                                                                                                                                    
+      if (!mfrc522.PICC_IsNewCardPresent()) return;                                                                                                                                                                                       
+      if (!mfrc522.PICC_ReadCardSerial()) return;                                                                                                                                                                                         
+                                                                                                                                                                                                                                          
+      // 3. Ambil UID                                                                                                                                                                                                                     
+      String uidString = "";                                                                                                                                                                                                              
+      for (byte i = 0; i < mfrc522.uid.size; i++) {                                                                                                                                                                                       
+        uidString += String(mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");                                                                                                                                                                    
+        uidString += String(mfrc522.uid.uidByte[i], HEX);                                                                                                                                                                                 
+      }                                                                                                                                                                                                                                   
+      uidString.toUpperCase();                                                                                                                                                                                                            
+                                                                                                                                                                                                                                          
+      Serial.println("\n-------------------------");                                                                                                                                                                                      
+      Serial.println("UID Kartu: " + uidString);                                                                                                                                                                                          
+                                                                                                                                                                                                                                          
+      digitalWrite(LED_HIJAU, HIGH);                                                                                                                                                                                                      
+      delay(100);                                                                                                                                                                                                                         
+      digitalWrite(LED_HIJAU, LOW);                                                                                                                                                                                                       
+                                                                                                                                                                                                                                          
+      kirimDataKeServer(uidString);                                                                                                                                                                                                       
+                                                                                                                                                                                                                                          
+      mfrc522.PICC_HaltA();                                                                                                                                                                                                               
+      mfrc522.PCD_StopCrypto1();                                                                                                                                                                                                          
+      delay(2000);                                                                                                                                                                                                                        
+    }                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                          
+    void kirimDataKeServer(String uid) {                                                                                                                                                                                                  
+      if (WiFi.status() != WL_CONNECTED) {                                                                                                                                                                                                
+        Serial.println("[ERR] WiFi Terputus!");                                                                                                                                                                                           
+        return;                                                                                                                                                                                                                           
+      }                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                          
+      WiFiClientSecure client;                                                                                                                                                                                                            
+      client.setInsecure();                                                                                                                                                                                                               
+      client.setTimeout(15000);                                                                                                                                                                                                           
+                                                                                                                                                                                                                                          
+      Serial.print("Menghubungkan ke Hostinger...");                                                                                                                                                                                      
+                                                                                                                                                                                                                                          
+      if (!client.connect("rfid.ordinaryfeb.xyz", 443)) {                                                                                                                                                                                 
+        Serial.println(" GAGAL!");                                                                                                                                                                                                        
+        digitalWrite(LED_MERAH, HIGH); delay(1500); digitalWrite(LED_MERAH, LOW);                                                                                                                                                         
+        return;                                                                                                                                                                                                                           
+      }                                                                                                                                                                                                                                   
+      Serial.println(" BERHASIL!");                                                                                                                                                                                                       
+                                                                                                                                                                                                                                          
+      String payload = "{\"uid\":\"" + uid + "\"}";                                                                                                                                                                                       
+                                                                                                                                                                                                                                          
+      client.println("POST /api/rfid/scan HTTP/1.1");                                                                                                                                                                                     
+      client.println("Host: rfid.ordinaryfeb.xyz");                                                                                                                                                                                       
+      client.println("Content-Type: application/json");                                                                                                                                                                                   
+      client.println("Accept: application/json");                                                                                                                                                                                         
+      client.println("User-Agent: ESP32-HMTI");                                                                                                                                                                                           
+      client.print("Content-Length: ");                                                                                                                                                                                                   
+      client.println(payload.length());                                                                                                                                                                                                   
+      client.println("Connection: close");                                                                                                                                                                                                
+      client.println();                                                                                                                                                                                                                   
+      client.println(payload);                                                                                                                                                                                                            
+                                                                                                                                                                                                                                          
+      Serial.print("Menunggu balasan server... ");                                                                                                                                                                                        
+                                                                                                                                                                                                                                          
+      while (client.connected()) {                                                                                                                                                                                                        
+        String line = client.readStringUntil('\n');                                                                                                                                                                                       
+        if (line == "\r") {                                                                                                                                                                                                               
+          break;                                                                                                                                                                                                                          
+        }                                                                                                                                                                                                                                 
+      }                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                          
+      String response = "";                                                                                                                                                                                                               
+      unsigned long startMilis = millis();                                                                                                                                                                                                
+                                                                                                                                                                                                                                          
+      while (millis() - startMilis < 3000) {                                                                                                                                                                                              
+        while (client.available()) {                                                                                                                                                                                                      
+          response += (char)client.read();                                                                                                                                                                                                
+          startMilis = millis();                                                                                                                                                                                                          
+        }                                                                                                                                                                                                                                 
+                                                                                                                                                                                                                                          
+        if (response.length() > 0) {                                                                                                                                                                                                      
+          break;                                                                                                                                                                                                                          
+        }                                                                                                                                                                                                                                 
+      }                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                          
+      Serial.println("\nBalasan Web: " + response);                                                                                                                                                                                       
+                                                                                                                                                                                                                                          
+      if (response.indexOf("\"success\":true") > 0) {
+        digitalWrite(LED_HIJAU, HIGH); delay(1500); digitalWrite(LED_HIJAU, LOW);
+      } else {
+        digitalWrite(LED_MERAH, HIGH); delay(1500); digitalWrite(LED_MERAH, LOW);
       }
+      
+      client.stop();
     }
